@@ -7,6 +7,9 @@ import random
 import matplotlib
 import matplotlib.pyplot as plt
 import networkx as nx
+import copy
+
+##TODO? CTP MCTS work only with int as node name, fix?
 
 ###############
 ### UTILITY ###
@@ -29,9 +32,34 @@ class nodeData():
 			else :
 				self.scoreAverage = 0
 
+
+class beliefState():
+	def __init__(self,graph,openEdge=[],closedEdge=[]):
+			self.graph=graph
+			self.unknownEdge = list(graph.edges())
+			self.openEdge    = openEdge
+			self.closedEdge  = closedEdge
+
+	def look(self,node,weather):		
+		self.openEdge += weather.edges(node)
+		self.closedEdge += list( set(self.graph.edges(node)) - set(weather.edges(node)))
+		self.unknownEdge = list(set(self.unknownEdge) - set(self.graph.edges(node)))
+
+
 #check if a list is contained within another one
 def check(subset,set1):
 	return set(subset).issubset(set(set1))
+
+
+def optimistic(beliefState,start,finish):
+	g=copy.deepcopy(beliefState.graph)
+	g.remove_edges_from(beliefState.closedEdge)
+	path= nx.shortest_path(g,start,finish,"weight")
+	weight=0
+
+	for i in range(len(path)-1):
+		weight+=g[path[i]][path[i+1]]['weight']
+	return weight
 
 ####################
 ### GAME & GAMES ###
@@ -42,6 +70,7 @@ class game():
 	def __init__(self):
 		self.startstate=""
 
+	
 	#return a list of possible moves from a state
 	def moves(self,state):
 		pass
@@ -280,6 +309,69 @@ def BackPropagationCTP(tree,root,score):
 		if currentNode == None:
 			break
 
+
+##########################
+### OPTIMISTIC VARIANT ###
+##########################
+
+#
+def SelectionCTPOptimistic(tree,root,totalTries,weather,b,belief_State,goal,optimisticWeight=20):
+	beliefState2=copy.deepcopy(belief_State)
+
+	nodes=tree.children(root)
+	if (nodes == []):
+		return root
+	else:
+		subtree=None
+		for n in nodes:
+				if (weather.has_edge(int(n.identifier[-2]),int(n.identifier[-1]))):
+
+					#init of subtree
+					if subtree == None :
+						subtree=n
+					
+					optimisticTime=optimistic(beliefState2,int(n.identifier[-1]),goal)
+					x=weather.get_edge_data(int(n.identifier[-2]),int(n.identifier[-1]))['weight']
+					
+					if (n.data.tries > 0): 
+
+						n.data.value=  float( b * ( math.sqrt( math.log( totalTries+optimisticWeight ) / n.data.tries+optimisticWeight ) ) ) - x - float( n.data.scoreAverage )
+					
+					else :
+						n.data.value=  float( ( math.sqrt( math.log( totalTries+optimisticWeight ) / optimisticWeight ) ) ) - x - float( n.data.scoreAverage )
+					
+					if (n.data.value>= subtree.data.value):
+						subtree=n
+		beliefState2.look(int(subtree.identifier[-1]),weather)
+		return SelectionCTPOptimistic(tree,subtree.identifier,totalTries,weather,b,beliefState2,goal,optimisticWeight)
+
+#
+def ExpansionCTPOptimistic(tree,root,game,state,weather,belief_State):
+	if game.evaluate(state) == ONGOING :
+		beliefState2=copy.deepcopy(belief_State)
+
+		x=None
+		xOptimistic=0
+		for n in game.moves(state) :
+			u,v=n
+			node=tree.create_node(tag=None,identifier=  str(root)+str(v)  ,parent=root,data=nodeData(tries=0,score=0))
+			beliefState2.look(v,weather)
+			if x==None and weather.has_edge(u,v) :
+				x=node
+				xOptimistic= optimistic(beliefState2,v,game.goal)
+			elif weather.has_edge(u,v):
+				newOptimistic=optimistic(beliefState2,v,game.goal)
+				if xOptimistic > newOptimistic:
+					x=node
+					xOptimistic=newOptimistic
+
+		return x
+	else:
+		return tree.get_node(root)
+
+
+
+
 #####################
 ### MCT Functions ###
 #####################
@@ -333,8 +425,6 @@ def MontreCarloTreeSearchCTP(game,state,iterationMax=10000):
 		result = SimulationCTP(game,state+ExpandedNode.identifier[1:],weather)
 
 		BackPropagationCTP(tree,ExpandedNode,result)
-
-		print("#####",state,result)
 			
 		iteration=iteration+1
 		
@@ -342,8 +432,41 @@ def MontreCarloTreeSearchCTP(game,state,iterationMax=10000):
 	print(list(map( lambda x : x.data.tries, tree.children(root))))
 	print(list(map( lambda x : x.data.scoreAverage, tree.children(root))))
 	
-	#bestMove1= numpy.argmax(list(map( lambda x : x.data.tries, tree.children(""))))
-	#bestMove= tree.children("")[bestMove1].identifier
+	return bestMove
+
+#
+def MontreCarloTreeSearchCTPOptimistic(game,state,iterationMax=10000,optimisticWeight=20):
+	
+	bestMove=""
+	iteration=0
+	
+	tree=treelib.Tree()
+	root=game.startstate
+	tree.create_node(tag=None,identifier=root,parent=None,data=nodeData(0,0))	
+
+	while ( iteration <= iterationMax ):
+		belief_State=beliefState(game.graph,[],[])
+		weather=getWeather(game.graph,game.startstate,game.goal)	
+		
+		for i in str(game.startstate):
+			belief_State.look(int(i),weather)		
+
+		b=((tree.get_node(root).data.scoreAverage*tree.get_node(root).data.tries)+(optimistic(belief_State, int(str(game.startstate)[-1]), game.goal)*optimisticWeight))/(tree.get_node(root).data.tries+optimisticWeight)
+
+		SelectedNode=SelectionCTPOptimistic(tree,root,iteration,weather,b,belief_State,game.goal,optimisticWeight)
+
+		ExpandedNode=ExpansionCTPOptimistic(tree,SelectedNode,game,str(state)+str(SelectedNode)[1:],weather,belief_State)
+
+		result = SimulationCTP(game,state+ExpandedNode.identifier[1:],weather)
+
+		BackPropagationCTP(tree,ExpandedNode,result)
+
+		iteration=iteration+1
+		
+	print(list(map( lambda x : x.identifier, tree.children(root))))
+	print(list(map( lambda x : x.data.tries, tree.children(root))))
+	print(list(map( lambda x : x.data.scoreAverage, tree.children(root))))
+	
 	return bestMove
 
 
@@ -353,13 +476,13 @@ def MontreCarloTreeSearchCTP(game,state,iterationMax=10000):
 ###TEST###
 ##########
 
-titato= ticTacToe()
+#titato= ticTacToe()
 
-x=MontreCarloTreeSearch(titato,"",iterationMax=5000)
-print(x)
+#x=MontreCarloTreeSearch(titato,"",iterationMax=5000)
+#print(x)
 
-x=MontreCarloTreeSearch(titato,"9581",iterationMax=5000)
-print(x)
+#x=MontreCarloTreeSearch(titato,"9581",iterationMax=5000)
+#print(x)
 
 
 g = nx.Graph()
@@ -367,14 +490,28 @@ g.add_node(1)
 g.add_node(2)
 g.add_node(3)
 g.add_node(4)
+g.add_node(5)
+g.add_node(6)
+g.add_node(7)
+g.add_node(8)
 
-
-#g.add_edge(1, 2,{weight :10,proba:0.1})
-g.add_edge(1, 2,weight =10,proba=0.1)
+g.add_edge(1, 2,weight =10,proba=0.5)
 g.add_edge(3, 2,weight =5,proba=0.4)
-g.add_edge(3, 1,weight =25,proba=0.8)
+g.add_edge(3, 6,weight =25,proba=0.8)
+g.add_edge(4, 7,weight =2,proba=0.3)
+g.add_edge(3, 8,weight =15,proba=0.5)
+g.add_edge(4, 1,weight =12,proba=0.5)
+g.add_edge(7, 6,weight =16,proba=0.7)
+g.add_edge(2, 5,weight =8,proba=0.8)
+g.add_edge(5, 4,weight =1,proba=0.9)
+g.add_edge(4, 3,weight =9,proba=0.5)
+g.add_edge(4, 8,weight =12,proba=0.7)
+g.add_edge(7, 8,weight =4,proba=0.4)
+g.add_edge(1, 8,weight =5,proba=0.99)
+g.add_edge(1, 5,weight =6,proba=0.25)
 
-x22=list(g.edges(1))
+
+#x22=list(g.edges(1))
 #print(x22[0])
 #print(g.get_edge_data(x22[0][0],x22[0][1])['weight'])
 #print(g[1][2]['weight'])
@@ -387,30 +524,34 @@ x22=list(g.edges(1))
 #except nx.exception.NetworkXNoPath:
 #	print("Nope no path")
 
-tree=treelib.Tree()
-tree.create_node(tag=None,identifier="1",parent=None,data=nodeData(0,0))	
-root="1"
+#tree=treelib.Tree()
+#tree.create_node(tag=None,identifier="1",parent=None,data=nodeData(0,0))	
+#root="1"
 
+CTPgame=canadianTravellerStochastic(g,1,8)
 
-CTPgame=canadianTravellerStochastic(g,1,3)
-weather=getWeather(g,1,3)
+print("Blind : ")
+MontreCarloTreeSearchCTP(CTPgame,'1',iterationMax=1000)
 
-SelectedNode=SelectionCTPblind(tree,root,0,weather,0)
+print("Optimistic : ")
+MontreCarloTreeSearchCTPOptimistic(CTPgame,'1',iterationMax=1000)
 
-ExpandedNode=ExpansionCTPBlind(tree,SelectedNode,CTPgame,""+SelectedNode,weather)
+#SelectedNode=SelectionCTPblind(tree,root,0,weather,0)
 
-SelectedNode=SelectionCTPblind(tree,root,0,weather,10)
+#ExpandedNode=ExpansionCTPBlind(tree,SelectedNode,CTPgame,""+SelectedNode,weather)
 
+#SelectedNode=SelectionCTPblind(tree,root,0,weather,10)
 
+#weather=getWeather(g,1,8)
+#bob=beliefState(g)
+#bob.look(1,weather)
 
-
+#optimistic(bob,1,8)
 
 #x=[1,2,3,4,5,6,7,8]
 #print(x)
 #print(x[1:])
 #print(x[:-1])
-
-MontreCarloTreeSearchCTP(CTPgame,'1',iterationMax=10000)
 
 #pos = nx.spring_layout(g)  # positions for all nodes
 
