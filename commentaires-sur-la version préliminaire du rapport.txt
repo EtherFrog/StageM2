@@ -1,0 +1,7 @@
+Quelques remarques sur le rapport
+
+1) Chapitre 1 : La définition du problème en est absente. Il ne faut pas oublier d'y insérer des références bibliographiques (oui, la partie "bibliographie" est très importante !)%%%JTO
+
+2) Section 2.2 : Cette session, actuellement "work in progress", devrait être développée. Il faut mettre en exergue les partis pris décrits en détail dans l'article séminal et ceux qui sont restés dans l'ombre (qui vous ont posé des soucis parce qu'il vous a manqué des éléments permettant de refaire l'implémentation originelle "à identique"). %%%JTO
+
+3) Chapitre 4 : ici, pour pouvoir formuler des conclusions concernant la comparaison des variantes, il faut des courbes ! %%%JTO
