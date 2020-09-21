@@ -1,7 +1,37 @@
+Pour compléter mes remarques (21/09/2020)
+
+Dans le préambule (quatre premières lignes du chapitre 1), il faut bien noter le problème original Yannakakis et Papadimitriou et "votre" version qui est posée différemment.
+
+Section 1.1 : l'exemple ne suffit pas, les défs sont indispensables. 
+
+Section 2.1 : le mot "papier" ne convient pas par écrit (article)
+
+Chapitre 2 : Remarque générale - les formules mathématiques nécessitent une mise en page convenable, par exemple des indices en bas (w_i, n_i), le symbole du logarithme naturel s'écrit \ln etc. 
+Subsection 2.1.2 : qu’est représenté par la formule UCT (proba, autre mesure) ? Bref, il faut décrire la nature d'UCT qui guide la descente.
+
+J'ai toujours l'impression que l'existence de deux arbres  dans MCTS est mise sous le tapis. Je ne sais pas si Arpdad partage mon avis.
+
+Simulation : quelle distribution aléatoire ? 
+
+FIGURE 2.1 existe bel et bien, mais elle n'est nullement référencée (vous en avez besoin, de cette référence, au début de la section 2.1.1). En général, vous ne référencez nullement les objets insérés...
+
+La même remarque que celle pour UTC à propos de la formule proposée qui englobe la distance (Section 2.2.5)
+
+Chapitre 3
+Je tiens à avoir un tableau recensant toutes les variantes que vous avez proposées (selon les trois critères que vous avez identifiés). Ici, il faudrait aussi justifier votre choix (pourquoi avez-vous pensé à ces modifications).
+
+Chapitre 4 
+Je ne peux que répéter ce qui a été dit lors des réunions et de la soutenance - les courbes doivent être décrites (les légendes attachées aux axes). La figure 4.2 est difficile à lire. Arpad a suggéré fort justement de retirer les courbes qui se superposent et lasser celles qui apportent des informations intéressantes.
+
+Le bilan (chapitre 5) devrait absolument contenir des pistes de recherche que vous indiquez aux personnes voulant reprendre votre projet. 
+
+
+
+
 Quelques remarques sur le rapport
 
-1) Chapitre 1 : La d�finition du probl�me en est absente. Il ne faut pas oublier d'y ins�rer des r�f�rences bibliographiques (oui, la partie "bibliographie" est tr�s importante !)%%%JTO
+1) Chapitre 1 : La définition du problème en est absente. Il ne faut pas oublier d'y insérer des références bibliographiques (oui, la partie "bibliographie" est très importante !)%%%JTO
 
-2) Section 2.2 : Cette session, actuellement "work in progress", devrait �tre d�velopp�e. Il faut mettre en exergue les partis pris d�crits en d�tail dans l'article s�minal et ceux qui sont rest�s dans l'ombre (qui vous ont pos� des soucis parce qu'il vous a manqu� des �l�ments permettant de refaire l'impl�mentation originelle "� identique"). %%%JTO
+2) Section 2.2 : Cette session, actuellement "work in progress", devrait être développée. Il faut mettre en exergue les partis pris décrits en détail dans l'article séminal et ceux qui sont restés dans l'ombre (qui vous ont posé des soucis parce qu'il vous a manqué des éléments permettant de refaire l'implémentation originelle "à identique"). %%%JTO
 
 3) Chapitre 4 : ici, pour pouvoir formuler des conclusions concernant la comparaison des variantes, il faut des courbes ! %%%JTO
